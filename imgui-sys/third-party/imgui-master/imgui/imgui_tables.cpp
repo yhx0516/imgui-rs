@@ -1794,15 +1794,26 @@ void ImGui::TableEndRow(ImGuiTable* table)
         // Draw cell background color
         if (draw_cell_bg_color)
         {
-            ImGuiTableCellData* cell_data_end = &table->RowCellData[table->RowCellDataCurrent];
-            for (ImGuiTableCellData* cell_data = &table->RowCellData[0]; cell_data <= cell_data_end; cell_data++)
+            ImRect row_rect(table->WorkRect.Min.x, bg_y1, table->WorkRect.Max.x, bg_y2);
+            row_rect.ClipWith(table->BgClipRect);
+
+            if (row_rect.Min.y < row_rect.Max.y)
             {
-                const ImGuiTableColumn* column = &table->Columns[cell_data->Column];
-                ImRect cell_bg_rect = TableGetCellBgRect(table, cell_data->Column);
-                cell_bg_rect.ClipWith(table->BgClipRect);
-                cell_bg_rect.Min.x = ImMax(cell_bg_rect.Min.x, column->ClipRect.Min.x);     // So that first column after frozen one gets clipped
-                cell_bg_rect.Max.x = ImMin(cell_bg_rect.Max.x, column->MaxX);
-                window->DrawList->AddRectFilled(cell_bg_rect.Min, cell_bg_rect.Max, cell_data->BgColor);
+                ImGuiTableCellData *cell_data_end = &table->RowCellData[table->RowCellDataCurrent];
+                for (ImGuiTableCellData *cell_data = &table->RowCellData[0]; cell_data <= cell_data_end; cell_data++)
+                {
+                    const ImGuiTableColumn *column = &table->Columns[cell_data->Column];
+                    const float row_height = TableGetHeaderRowHeight();
+
+                    ImRect cell_bg_rect = TableGetCellBgRect(table, cell_data->Column);
+                    cell_bg_rect.ClipWith(table->BgClipRect);
+                    cell_bg_rect.Min.x = ImMax(cell_bg_rect.Min.x, column->ClipRect.Min.x); // So that first column after frozen one gets clipped
+                    cell_bg_rect.Max.x = ImMin(cell_bg_rect.Max.x, column->MaxX);
+                    // fix clip issue
+                    cell_bg_rect.Min.y = row_rect.Min.y;
+                    cell_bg_rect.Max.y = row_rect.Max.y;
+                    window->DrawList->AddRectFilled(cell_bg_rect.Min, cell_bg_rect.Max, cell_data->BgColor);
+                }
             }
         }
 
